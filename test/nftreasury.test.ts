@@ -2,14 +2,14 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "ethers";
 import hre from "hardhat";
-import { Marketplace, NFTreasury } from "../typechain-types";
+import { NFTreasuryMarketplace, NFTreasury } from "../typechain-types";
 import * as MarketplaceJson from "../artifacts/contracts/NFTreasuryMarketplace.sol/NFTreasuryMarketplace.json";
 
 describe("NFTreasury", async () => {
   const NAME = 'NFTreasury';
   const SYMBOL = 'NFTR';
   let nftContract: NFTreasury;
-  let marketplaceContract: Marketplace;
+  let marketplaceContract: NFTreasuryMarketplace;
   let contractOwner: SignerWithAddress;
   let nftMinter: SignerWithAddress;
   let nftBuyer: SignerWithAddress;
@@ -38,21 +38,33 @@ describe("NFTreasury", async () => {
       contractOwner.address,
     ) as NFTreasury;
 
-    // https://docs.openzeppelin.com/upgrades-plugins/1.x/hardhat-upgrades
-    // const Marketplace = await hre.ethers.getContractFactory(abi, bytecode, contractOwner);
     const MarketplaceFactory = await hre.ethers.getContractFactory("NFTreasuryMarketplace");
-    marketplaceContract = await hre.upgrades.deployProxy(MarketplaceFactory,  [
+    marketplaceContract = await MarketplaceFactory.deploy(
+      ethers.constants.AddressZero,
       contractOwner.address, // _defaultAdmin
       "ipfs://Qmaioe7r9YdEUvCRtNBdjqN53SgXJLfRfecV97oWVqEwj6/0", // _contractURI
       [], // _trustedForwarders
       contractOwner.address, // _platformFeeRecipient
       0, // _platformFeeBps
       LIST_PRICE_BPS_INCREASE
-    ], { 
-      unsafeAllow: ["constructor", "delegatecall", "state-variable-immutable"],
-      constructorArgs: [ethers.constants.AddressZero]
-    }) as Marketplace;
-    await marketplaceContract.deployed();
+    )
+
+    /**
+     * Deployment for Upgradable contract
+     * https://docs.openzeppelin.com/upgrades-plugins/1.x/hardhat-upgrades
+     */
+    // marketplaceContract = await hre.upgrades.deployProxy(MarketplaceFactory,  [
+    //   contractOwner.address, // _defaultAdmin
+    //   "ipfs://Qmaioe7r9YdEUvCRtNBdjqN53SgXJLfRfecV97oWVqEwj6/0", // _contractURI
+    //   [], // _trustedForwarders
+    //   contractOwner.address, // _platformFeeRecipient
+    //   0, // _platformFeeBps
+    //   LIST_PRICE_BPS_INCREASE
+    // ], { 
+    //   unsafeAllow: ["constructor", "delegatecall", "state-variable-immutable"],
+    //   constructorArgs: [ethers.constants.AddressZero]
+    // }) as Marketplace;
+    // await marketplaceContract.deployed();
 
     // set allowed marketplace to NFT contract
     const tx = await nftContract.setApprovedMarketplace(marketplaceContract.address, true);
@@ -65,14 +77,14 @@ describe("NFTreasury", async () => {
      * Probably need to split functionalities to multiple contracts
      */
     // @ts-ignore
-    const encoded = marketplaceContract.interface.encodeFunctionData("initialize", [
-      contractOwner.address, // _defaultAdmin
-      "ipfs://Qmaioe7r9YdEUvCRtNBdjqN53SgXJLfRfecV97oWVqEwj6/0", // _contractURI
-      [], // _trustedForwarders
-      contractOwner.address, // _platformFeeRecipient
-      0, // _platformFeeBps
-      LIST_PRICE_BPS_INCREASE
-    ])
+    // const encoded = marketplaceContract.interface.encodeFunctionData("initialize", [
+    //   contractOwner.address, // _defaultAdmin
+    //   "ipfs://Qmaioe7r9YdEUvCRtNBdjqN53SgXJLfRfecV97oWVqEwj6/0", // _contractURI
+    //   [], // _trustedForwarders
+    //   contractOwner.address, // _platformFeeRecipient
+    //   0, // _platformFeeBps
+    //   LIST_PRICE_BPS_INCREASE
+    // ])
   })
 
   it("deploys correctly", async () => {

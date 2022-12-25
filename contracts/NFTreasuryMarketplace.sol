@@ -33,7 +33,6 @@ import "@thirdweb-dev/contracts/lib/CurrencyTransferLib.sol";
 import "@thirdweb-dev/contracts/lib/FeeType.sol";
 
 contract NFTreasuryMarketplace is
-    // Upgradeable,
     Initializable,
     IMarketplace,
     ReentrancyGuardUpgradeable,
@@ -47,8 +46,8 @@ contract NFTreasuryMarketplace is
                             State variables
     //////////////////////////////////////////////////////////////*/
 
-    bytes32 private constant MODULE_TYPE = bytes32("Marketplace");
-    uint256 private constant VERSION = 2;
+    bytes32 private constant MODULE_TYPE = bytes32("NFTreasuryMarketplace");
+    uint256 private constant VERSION = 1;
 
     /// @dev Only lister role holders can create listings, when listings are restricted by lister address.
     bytes32 private constant LISTER_ROLE = keccak256("LISTER_ROLE");
@@ -116,18 +115,36 @@ contract NFTreasuryMarketplace is
     }
 
     /*///////////////////////////////////////////////////////////////
-                    Upgradable Functions
-    //////////////////////////////////////////////////////////////*/
-    // function _authorizeUpgrade(address newImplementation) internal view override {
-    //     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only admin");
-    // }
-
-    /*///////////////////////////////////////////////////////////////
                     Constructor + initializer logic
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _nativeTokenWrapper) initializer {
+    constructor(
+        address _nativeTokenWrapper,
+        address _defaultAdmin,
+        string memory _contractURI,
+        address[] memory _trustedForwarders,
+        address _platformFeeRecipient,
+        uint256 _platformFeeBps,
+        uint64 _listPriceBpsIncrease
+    ) initializer {
         nativeTokenWrapper = _nativeTokenWrapper;
+        // Initialize inherited contracts, most base-like -> most derived.
+        __ReentrancyGuard_init();
+        __ERC2771Context_init(_trustedForwarders);
+
+        // Initialize this contract's state.
+        timeBuffer = 15 minutes;
+        bidBufferBps = 500;
+
+        contractURI = _contractURI;
+        platformFeeBps = uint64(_platformFeeBps);
+        platformFeeRecipient = _platformFeeRecipient;
+
+        LIST_PRICE_BPS_INCREASE = _listPriceBpsIncrease;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
+        _setupRole(LISTER_ROLE, address(0));
+        _setupRole(ASSET_ROLE, address(0));
     }
 
     /// @dev Initiliazes the contract, like a constructor.

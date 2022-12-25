@@ -1,3 +1,9 @@
+## Deployed Contracts
+| Name                  | Address                                    | Notes                |
+| ----                  | -------                                    | -----                |
+| NFTreasuryMarketplace | 0x0a8b26Ce68aC5D0a54E3caBd8FfAaC246d341a12 | Marketplace (Custom) |
+| NFTreasury            | 0xD9Ed3d750bD9d45D154A2C7c443Eaddffb215F30 | NFT (ERC721)         |
+
 ## Getting Started
 
 Create a project using this example:
