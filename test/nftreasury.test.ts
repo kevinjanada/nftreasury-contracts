@@ -10,18 +10,22 @@ describe("NFTreasury", async () => {
   let nftContract: NFTreasury;
   let marketplaceContract: Marketplace;
   let contractOwner: SignerWithAddress;
-  // let nftCreator: SignerWithAddress;
   let nftMinter: SignerWithAddress;
-  let chainId: number;
+  let nftBuyer: SignerWithAddress;
+  let listingId: number;
 
   const MAX_UINT_128 = "170141183460469231731687303715884105727";
   const NATIVE_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
+  const NFT_PRICE = ethers.utils.parseEther("0.001");
+  const LIST_PRICE_BPS_INCREASE = 1000;
+  const MAX_BPS = 10000;
+
   before(async () => {
     [
       contractOwner,
-      // nftCreator,
       nftMinter,
+      nftBuyer,
     ] = await hre.ethers.getSigners();
 
     const Nft = await hre.ethers.getContractFactory("NFTreasury");
@@ -41,7 +45,8 @@ describe("NFTreasury", async () => {
       "ipfs://Qmaioe7r9YdEUvCRtNBdjqN53SgXJLfRfecV97oWVqEwj6/0", // _contractURI
       [], // _trustedForwarders
       contractOwner.address, // _platformFeeRecipient
-      0 // _platformFeeBps
+      0, // _platformFeeBps
+      LIST_PRICE_BPS_INCREASE
     ], { 
       unsafeAllow: ["constructor", "delegatecall", "state-variable-immutable"],
       constructorArgs: [ethers.constants.AddressZero]
@@ -66,12 +71,9 @@ describe("NFTreasury", async () => {
   })
 
   it("can create listing without approval", async () => {
-    let tx = await marketplaceContract.grantRole(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("LISTER_ROLE")), nftMinter.address);
-    await tx.wait();
-
-    tx = await marketplaceContract.connect(nftMinter).createListing({
+    let tx = await marketplaceContract.connect(nftMinter).createListing({
       assetContract: nftContract.address,
-      buyoutPricePerToken: ethers.utils.parseEther("0.0001"),
+      buyoutPricePerToken: NFT_PRICE,
       currencyToAccept: NATIVE_TOKEN,
       listingType: 0,
       quantityToList: 1,
@@ -81,6 +83,39 @@ describe("NFTreasury", async () => {
       tokenId: 0,
     })
 
+    const receipt = await tx.wait();
+    const eventListingAdded = receipt.events?.find(({ event }) => event == 'ListingAdded');
+    listingId = eventListingAdded?.args?.listingId.toNumber();
+  });
+
+  it("Listing Purchase: 1. Keep Listing, 2. changes the ownership and lister to the buyer, 3. increase price by BPS_INCREASE", async () => {
+    // Buy the NFT
+    let tx = await marketplaceContract.buy(
+      listingId,
+      nftBuyer.address,
+      1,
+      NATIVE_TOKEN,
+      NFT_PRICE,
+      { value: NFT_PRICE }
+    );
     await tx.wait();
-  })
+
+    // Expect the ownership of the nft changes to nftBuyer.address
+    const ownerAddress = await nftContract.ownerOf(0);
+    expect(ownerAddress).to.equal(nftBuyer.address, "FAIL: NFT Ownership not transferred to buyer");
+
+    const listing = await marketplaceContract.listings(listingId);
+    // Expect listing quantity to not change
+    expect(listing.quantity).to.equal(1, "FAIL: Listing quantity should be equal to the original listing");
+    // Expect the listing to still exists, and token owner is the previous buyer
+    expect(listing.tokenOwner).to.equal(nftBuyer.address, "FAIL: Listing exists and but lister is still the old lister");
+
+    // Expect the price to be higher by LIST_PRICE_BPS_INCREASE
+    expect(listing.buyoutPricePerToken).to.equal(
+      NFT_PRICE.add(
+        NFT_PRICE.mul(LIST_PRICE_BPS_INCREASE).div(MAX_BPS)
+      ),
+      "FAIL: Listing price not increased by BPS_INCREASE"
+    );
+  });
 });
