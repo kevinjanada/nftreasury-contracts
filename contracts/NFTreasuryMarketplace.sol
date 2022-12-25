@@ -2,6 +2,8 @@
 pragma solidity ^0.8.11;
 
 //  ==========  External imports    ==========
+// import "@thirdweb-dev/contracts/extension/Upgradeable.sol";
+// import "@thirdweb-dev/contracts/extension/Initializable.sol";
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
@@ -12,6 +14,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradea
 
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/interfaces/IERC2981Upgradeable.sol";
+
+// import { AccessControlEnumerableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+// import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+// import { MulticallUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -27,6 +33,7 @@ import "@thirdweb-dev/contracts/lib/CurrencyTransferLib.sol";
 import "@thirdweb-dev/contracts/lib/FeeType.sol";
 
 contract NFTreasuryMarketplace is
+    // Upgradeable,
     Initializable,
     IMarketplace,
     ReentrancyGuardUpgradeable,
@@ -107,6 +114,13 @@ contract NFTreasuryMarketplace is
         require(listings[_listingId].assetContract != address(0), "DNE");
         _;
     }
+
+    /*///////////////////////////////////////////////////////////////
+                    Upgradable Functions
+    //////////////////////////////////////////////////////////////*/
+    // function _authorizeUpgrade(address newImplementation) internal view override {
+    //     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "only admin");
+    // }
 
     /*///////////////////////////////////////////////////////////////
                     Constructor + initializer logic
