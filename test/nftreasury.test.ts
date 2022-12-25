@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { ethers } from "ethers";
 import hre from "hardhat";
 import { Marketplace, NFTreasury } from "../typechain-types";
+import * as MarketplaceJson from "../artifacts/contracts/NFTreasuryMarketplace.sol/NFTreasuryMarketplace.json";
 
 describe("NFTreasury", async () => {
   const NAME = 'NFTreasury';
@@ -56,6 +57,22 @@ describe("NFTreasury", async () => {
     // set allowed marketplace to NFT contract
     const tx = await nftContract.setApprovedMarketplace(marketplaceContract.address, true);
     await tx.wait();
+
+    /**
+     * Can be used for upgradeable contracts. refer to: https://blog.thirdweb.com/guides/how-to-upgrade-smart-contracts-upgradeable-smart-contracts/
+     * Currently the marketplace contract is too big to be upgradeable.
+     * Need more refactor to make contract size smaller.
+     * Probably need to split functionalities to multiple contracts
+     */
+    // @ts-ignore
+    const encoded = marketplaceContract.interface.encodeFunctionData("initialize", [
+      contractOwner.address, // _defaultAdmin
+      "ipfs://Qmaioe7r9YdEUvCRtNBdjqN53SgXJLfRfecV97oWVqEwj6/0", // _contractURI
+      [], // _trustedForwarders
+      contractOwner.address, // _platformFeeRecipient
+      0, // _platformFeeBps
+      LIST_PRICE_BPS_INCREASE
+    ])
   })
 
   it("deploys correctly", async () => {
