@@ -59,7 +59,7 @@ describe("NFTreasury", async () => {
     await tx.wait();
 
     /**
-     * Can be used for upgradeable contracts.
+     * Can be used for upgradeable contracts. refer to: https://blog.thirdweb.com/guides/how-to-upgrade-smart-contracts-upgradeable-smart-contracts/
      * Currently the marketplace contract is too big to be upgradeable.
      * Need more refactor to make contract size smaller.
      * Probably need to split functionalities to multiple contracts
