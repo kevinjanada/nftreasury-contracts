@@ -1,8 +1,50 @@
+## Deployment Steps
+1. Deploy NFTreasuryMarketplace
+```javascript
+# Params
+_nativeTokenWrapper*
+address: "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa"
+_defaultAdmin*
+address: 0x795aE9223FBb6a12a6c71391755Be1707E52EB72
+_contractURI*
+string: "ipfs://QmfUJNmtB5Liq5uAh5pu4Ghq6BYsAXyGAnemzz5be2sRQG/0"
+_trustedForwarders*
+address[]: []
+_platformFeeRecipient*
+address: "0x795aE9223FBb6a12a6c71391755Be1707E52EB72"
+_platformFeeBps*
+uint256: 250
+_listPriceBpsIncrease*
+uint64: 1000
+```
+2. Deploy NFTreasury
+  - Set Claim Conditions
+
+3. setMainNFT(nft contract address) @ marketplace contract
+
 ## Deployed Contracts
 | Name                  | Address                                    | Notes                |
 | ----                  | -------                                    | -----                |
-| NFTreasuryMarketplace | 0x0a8b26Ce68aC5D0a54E3caBd8FfAaC246d341a12 | Marketplace (Custom) |
-| NFTreasury            | 0xD9Ed3d750bD9d45D154A2C7c443Eaddffb215F30 | NFT (ERC721)         |
+| NFTreasuryMarketplace | 0xf0d4F72fb649Dd2d7a76743F82ab4365B07f8305 | Marketplace (Custom) |
+| NFTreasury            | 0xaE983F165dC5aaD40B5ee4B0311Ae455e139f43c | NFT (ERC721)         |
+
+
+## claimAndList
+```javascript
+_receiver = "Receiving User's wallet address"
+_currency = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+_pricePerToken = 0
+_allowlistProof =
+  {
+    "proof": [],
+    "quantityLimitPerWallet": 0,
+    "pricePerToken": 0,
+    "currency": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+  }
+_listingPrice = x in wei
+_data = []
+Native Token Value = 0
+```
 
 ## Getting Started
 

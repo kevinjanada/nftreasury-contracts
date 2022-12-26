@@ -25,16 +25,19 @@ import "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 
 //  ==========  Internal imports    ==========
 
-import { IMarketplace } from "@thirdweb-dev/contracts/interfaces/marketplace/IMarketplace.sol";
+// import { IMarketplace } from "@thirdweb-dev/contracts/interfaces/marketplace/IMarketplace.sol";
+import "./interface/INFTreasuryMarketplace.sol";
 
 import "@thirdweb-dev/contracts/openzeppelin-presets/metatx/ERC2771ContextUpgradeable.sol";
 
 import "@thirdweb-dev/contracts/lib/CurrencyTransferLib.sol";
 import "@thirdweb-dev/contracts/lib/FeeType.sol";
 
+import "hardhat/console.sol";
+
 contract NFTreasuryMarketplace is
     Initializable,
-    IMarketplace,
+    INFTreasuryMarketplace,
     ReentrancyGuardUpgradeable,
     ERC2771ContextUpgradeable,
     MulticallUpgradeable,
@@ -118,6 +121,8 @@ contract NFTreasuryMarketplace is
                     Constructor + initializer logic
     //////////////////////////////////////////////////////////////*/
 
+    address public mainNFT;
+
     constructor(
         address _nativeTokenWrapper,
         address _defaultAdmin,
@@ -173,6 +178,10 @@ contract NFTreasuryMarketplace is
         _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         _setupRole(LISTER_ROLE, address(0));
         _setupRole(ASSET_ROLE, address(0));
+    }
+
+    function setMainNFT(address _mainNFT) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        mainNFT = _mainNFT;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -243,13 +252,15 @@ contract NFTreasuryMarketplace is
     //////////////////////////////////////////////////////////////*/
 
     /// @dev Lets a token owner list tokens for sale: Direct Listing or Auction.
-    function createListing(ListingParameters memory _params) external override {
+    function createListing(ListingParameters memory _params, address tokenOwner) external override {
         // Get values to populate `Listing`.
         uint256 listingId = totalListings;
         totalListings += 1;
 
-        address tokenOwner = _msgSender();
+        // address tokenOwner = _msgSender();
         TokenType tokenTypeOfListing = getTokenType(_params.assetContract);
+        require(tokenTypeOfListing == TokenType.ERC721, "only ERC721 tokens are supported");
+
         uint256 tokenAmountToList = getSafeQuantity(tokenTypeOfListing, _params.quantityToList);
 
         require(tokenAmountToList > 0, "QUANTITY");
@@ -263,13 +274,15 @@ contract NFTreasuryMarketplace is
             startTime = block.timestamp;
         }
 
-        validateOwnershipAndApproval(
-            tokenOwner,
-            _params.assetContract,
-            _params.tokenId,
-            tokenAmountToList,
-            tokenTypeOfListing
-        );
+        if (_msgSender() != mainNFT) {
+            validateOwnershipAndApproval(
+                tokenOwner,
+                _params.assetContract,
+                _params.tokenId,
+                tokenAmountToList,
+                tokenTypeOfListing
+            );
+        }
 
         Listing memory newListing = Listing({
             listingId: listingId,
@@ -306,7 +319,7 @@ contract NFTreasuryMarketplace is
         address _currencyToAccept,
         uint256 _startTime,
         uint256 _secondsUntilEndTime
-    ) external override onlyListingCreator(_listingId) {
+    ) external override onlyRole(DEFAULT_ADMIN_ROLE) {
         Listing memory targetListing = listings[_listingId];
         uint256 safeNewQuantity = getSafeQuantity(targetListing.tokenType, _quantityToList);
         bool isAuction = targetListing.listingType == ListingType.Auction;
@@ -328,7 +341,7 @@ contract NFTreasuryMarketplace is
         uint256 newStartTime = _startTime == 0 ? targetListing.startTime : _startTime;
         listings[_listingId] = Listing({
             listingId: _listingId,
-            tokenOwner: _msgSender(),
+            tokenOwner: targetListing.tokenOwner,
             assetContract: targetListing.assetContract,
             tokenId: targetListing.tokenId,
             startTime: newStartTime,
@@ -367,7 +380,7 @@ contract NFTreasuryMarketplace is
     }
 
     /// @dev Lets a direct listing creator cancel their listing.
-    function cancelDirectListing(uint256 _listingId) external onlyListingCreator(_listingId) {
+    function cancelDirectListing(uint256 _listingId) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Listing memory targetListing = listings[_listingId];
 
         require(targetListing.listingType == ListingType.Direct, "!DIRECT");
@@ -442,6 +455,9 @@ contract NFTreasuryMarketplace is
         uint256 _currencyAmountToTransfer,
         uint256 _listingTokenAmountToTransfer
     ) internal {
+        // The token owner is dynamically derived, since the token is always listed 
+        _targetListing.tokenOwner = IERC721Upgradeable(_targetListing.assetContract).ownerOf(_targetListing.tokenId);
+
         validateDirectListingSale(
             _targetListing,
             _payer,

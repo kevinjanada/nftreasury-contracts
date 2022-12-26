@@ -3,6 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@thirdweb-dev/contracts/base/ERC721Base.sol";
 import "@thirdweb-dev/contracts/base/ERC721Drop.sol";
+import "@thirdweb-dev/contracts/lib/TWAddress.sol";
+
+import { INFTreasuryMarketplace as IMarketplace } from "./interface/INFTreasuryMarketplace.sol";
+import "@thirdweb-dev/contracts/lib/CurrencyTransferLib.sol";
 
 contract NFTreasury is ERC721Drop {
     uint256 public maxSupply;
@@ -22,12 +26,15 @@ contract NFTreasury is ERC721Drop {
     /// @notice Mapping of approved marketplaces
     mapping(address => bool) public approvedMarketplaces;
 
+    address public mainMarketplace;
+
     constructor(
         string memory _name,
         string memory _symbol,
         address _royaltyRecipient,
         uint128 _royaltyBps,
-        address _primaryRecepient
+        address _primaryRecepient,
+        address _mainMarketplace
     )
         ERC721Drop(
             _name,
@@ -36,7 +43,10 @@ contract NFTreasury is ERC721Drop {
             _royaltyBps,
             _primaryRecepient
         )
-    {}
+    {
+        mainMarketplace = _mainMarketplace;
+        setApprovedMarketplace(_mainMarketplace, true);
+    }
 
     function toggleContractPause() public onlyOwner {
         pause = true;
@@ -54,11 +64,60 @@ contract NFTreasury is ERC721Drop {
         maxSupply = _supply;
     }
 
-    function mintTo(address to, uint qty) external {
-        _safeMint(to, qty);
+    function setMainMarketplace(address _mainMarketplace) external onlyOwner {
+        mainMarketplace = _mainMarketplace;
     }
 
-        /**
+    /**
+        This function should not be used
+     */
+    function claim(
+        address _receiver,
+        uint256 _quantity,
+        address _currency,
+        uint256 _pricePerToken,
+        AllowlistProof calldata _allowlistProof,
+        bytes memory _data
+    ) public payable override {
+        revert("use claimAndList function instead");
+    }
+
+    // Can only claim 1 at a time
+    function claimAndList(
+        address _receiver,
+        address _currency,
+        uint256 _pricePerToken,
+        AllowlistProof calldata _allowlistProof,
+        uint256 _listingPrice,
+        bytes memory _data
+    ) external payable {
+        uint256 tokenId = ERC721Drop.nextTokenIdToClaim();
+        uint256 _quantity = 1;
+
+        DropSinglePhase.claim(_receiver, _quantity, _currency, _pricePerToken, _allowlistProof, _data);
+
+        IMarketplace.ListingParameters memory _params = IMarketplace.ListingParameters({
+            assetContract: address(this),
+            tokenId: tokenId,
+            startTime: block.timestamp,
+            secondsUntilEndTime: type(uint256).max - block.timestamp - 10000,
+            quantityToList: _quantity,
+            currencyToAccept: CurrencyTransferLib.NATIVE_TOKEN,
+            reservePricePerToken: 0,
+            buyoutPricePerToken: _listingPrice,
+            listingType: IMarketplace.ListingType.Direct
+        });
+
+        IMarketplace(mainMarketplace).createListing(_params, _receiver);
+    }
+
+    // Should not be able to approve to other contracts
+    function setApprovalForAll(address operator, bool _approved) public override(ERC721A) {
+        require(!TWAddress.isContract(operator), "can only be approved to NFTreasuryMarketplace contract");
+        ERC721A.setApprovalForAll(operator, _approved);
+    }
+
+     /**
      * @notice Approve or disapprove a marketplace contract to enable or disable trading on it
      */
     function setApprovedMarketplace(address market, bool approved) public onlyOwner {
