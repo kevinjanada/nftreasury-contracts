@@ -233,4 +233,63 @@ describe("NFTreasury", async () => {
       "FAIL: Listing price not increased by BPS_INCREASE"
     );
   })
+
+  it("Cannot createListing if OUTSIDE_LISTING_ALLOWED == false", async () => {
+    const isAllowed = await marketplaceContract.OUTSIDE_LISTING_ALLOWED();
+    expect(isAllowed).to.be.false;
+
+    const listingArgs = {
+      assetContract: nftContract.address,
+      tokenId: 0,
+      listingType: 0,
+      buyoutPricePerToken: hre.ethers.constants.MaxUint256,
+      reservePricePerToken: ethers.utils.parseEther("0.001"),
+      quantityToList: 1,
+      currencyToAccept: NATIVE_TOKEN,
+      secondsUntilEndTime: 1000,
+      startTime: Math.floor(Date.now() / 1000),
+    }
+
+    await expect(marketplaceContract.connect(nftBuyer).createListing(listingArgs, nftBuyer.address)).to.be.revertedWith("outside listing is not allowed");
+
+    let tx = await marketplaceContract.setOutsideListingAllowed(true);
+    await tx.wait();
+
+    await expect(marketplaceContract.connect(nftBuyer).setOutsideListingAllowed(false))
+      .to.be.revertedWith(`AccessControl: account ${nftBuyer.address.toLowerCase()} is missing role 0x0000000000000000000000000000000000000000000000000000000000000000`);
+
+    tx = await marketplaceContract.connect(nftBuyer).createListing(listingArgs, nftBuyer.address)
+    await tx.wait();
+  })
+
+  it("Auction is disabled at first, and can be enabled by admin", async () => {
+    let isAuctionEnabled = await marketplaceContract.AUCTION_ENABLED();
+    expect(isAuctionEnabled).to.be.false;
+
+    const listingArgs = {
+      assetContract: nftContract.address,
+      tokenId: 0,
+      listingType: 1, // ListingType.Auction
+      buyoutPricePerToken: hre.ethers.constants.MaxUint256,
+      reservePricePerToken: ethers.utils.parseEther("0.001"),
+      quantityToList: 1,
+      currencyToAccept: NATIVE_TOKEN,
+      secondsUntilEndTime: 1000,
+      startTime: Math.floor(Date.now() / 1000),
+    }
+
+    await expect(marketplaceContract.connect(nftBuyer).createListing(listingArgs, nftBuyer.address)).to.be.revertedWith("auction is not enabled");
+
+    let tx = await marketplaceContract.setAuctionEnabled(true);
+    await tx.wait();
+
+    await expect(marketplaceContract.connect(nftBuyer).setAuctionEnabled(false))
+      .to.be.revertedWith(`AccessControl: account ${nftBuyer.address.toLowerCase()} is missing role 0x0000000000000000000000000000000000000000000000000000000000000000`);
+
+    isAuctionEnabled = await marketplaceContract.AUCTION_ENABLED();
+    expect(isAuctionEnabled).to.be.true;
+
+    tx = await marketplaceContract.connect(nftBuyer).createListing(listingArgs, nftBuyer.address)
+    await tx.wait();
+  })
 });

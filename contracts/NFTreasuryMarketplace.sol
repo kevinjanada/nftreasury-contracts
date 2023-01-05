@@ -88,6 +88,9 @@ contract NFTreasuryMarketplace is
     /// @dev The minimum % increase required from the previous winning bid. Default: 5%.
     uint64 public bidBufferBps;
 
+    bool public AUCTION_ENABLED;
+    bool public OUTSIDE_LISTING_ALLOWED;
+
     /*///////////////////////////////////////////////////////////////
                                 Mappings
     //////////////////////////////////////////////////////////////*/
@@ -147,6 +150,9 @@ contract NFTreasuryMarketplace is
 
         LIST_PRICE_BPS_INCREASE = _listPriceBpsIncrease;
 
+        AUCTION_ENABLED = false;
+        OUTSIDE_LISTING_ALLOWED = false;
+
         _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         _setupRole(LISTER_ROLE, address(0));
         _setupRole(ASSET_ROLE, address(0));
@@ -174,6 +180,9 @@ contract NFTreasuryMarketplace is
         platformFeeRecipient = _platformFeeRecipient;
 
         LIST_PRICE_BPS_INCREASE = _listPriceBpsIncrease;
+        OUTSIDE_LISTING_ALLOWED = false;
+
+        AUCTION_ENABLED = false;
 
         _setupRole(DEFAULT_ADMIN_ROLE, _defaultAdmin);
         _setupRole(LISTER_ROLE, address(0));
@@ -282,6 +291,13 @@ contract NFTreasuryMarketplace is
                 tokenAmountToList,
                 tokenTypeOfListing
             );
+        }
+
+        if (_msgSender() != mainNFT) {
+            require(OUTSIDE_LISTING_ALLOWED, "outside listing is not allowed");
+        }
+        if (_params.listingType == ListingType.Auction) {
+            require(AUCTION_ENABLED, "auction is not enabled");
         }
 
         Listing memory newListing = Listing({
@@ -965,5 +981,13 @@ contract NFTreasuryMarketplace is
 
     function setListPriceBpsIncrease(uint64 _BPS_INCREASE) external onlyRole(DEFAULT_ADMIN_ROLE) {
       LIST_PRICE_BPS_INCREASE = _BPS_INCREASE;
+    }
+
+    function setAuctionEnabled(bool _isEnabled) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        AUCTION_ENABLED = _isEnabled;
+    }
+
+    function setOutsideListingAllowed(bool _isAllowed) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        OUTSIDE_LISTING_ALLOWED = _isAllowed;
     }
 }
