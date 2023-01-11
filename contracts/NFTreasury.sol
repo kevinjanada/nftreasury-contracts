@@ -78,6 +78,12 @@ contract NFTreasury is ERC721Drop {
         AllowlistProof calldata _allowlistProof,
         bytes memory _data
     ) public payable override {
+        _receiver;
+        _quantity;
+        _currency;
+        _pricePerToken;
+        _allowlistProof;
+        _data;
         revert("use claimAndList function instead");
     }
 
