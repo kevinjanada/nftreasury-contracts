@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "@thirdweb-dev/contracts/base/ERC721Base.sol";
-import "@thirdweb-dev/contracts/base/ERC721Drop.sol";
+import "./base/ERC721Drop.sol";
 import "@thirdweb-dev/contracts/lib/TWAddress.sol";
 
 import { INFTreasuryMarketplace as IMarketplace } from "./interface/INFTreasuryMarketplace.sol";
@@ -113,7 +112,8 @@ contract NFTreasury is ERC721Drop {
 
     // Should not be able to approve to other contracts
     function setApprovalForAll(address operator, bool _approved) public override(ERC721A) {
-        require(!TWAddress.isContract(operator), "can only be approved to NFTreasuryMarketplace contract");
+        require(approvedMarketplaces[operator], "can only be approved to approved marketplaces");
+        // require(!TWAddress.isContract(operator), "can only be approved to NFTreasuryMarketplace contract");
         ERC721A.setApprovalForAll(operator, _approved);
     }
 
@@ -130,5 +130,10 @@ contract NFTreasury is ERC721Drop {
             return true;
         }
         return ERC721A.isApprovedForAll(owner, operator);
+    }
+ 
+    function approve(address to, uint256 tokenId) public override(ERC721A) {
+        require(approvedMarketplaces[to], "can only be approved to approved marketplaces");
+        ERC721A.approve(to, tokenId);
     }
 }

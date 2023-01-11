@@ -14,6 +14,7 @@ describe("NFTreasury", async () => {
   let nftMinter: SignerWithAddress;
   let nftBuyer: SignerWithAddress;
   let nftReceiver: SignerWithAddress;
+  let someAddress: SignerWithAddress;
   let listingId: number;
 
   const MAX_UINT_128 = "170141183460469231731687303715884105727";
@@ -35,7 +36,8 @@ describe("NFTreasury", async () => {
       contractOwner,
       nftMinter,
       nftBuyer,
-      nftReceiver
+      nftReceiver,
+      someAddress
     ] = await hre.ethers.getSigners();
 
     const MarketplaceFactory = await hre.ethers.getContractFactory("NFTreasuryMarketplace");
@@ -291,5 +293,10 @@ describe("NFTreasury", async () => {
 
     tx = await marketplaceContract.connect(nftBuyer).createListing(listingArgs, nftBuyer.address)
     await tx.wait();
+  })
+
+  it("Can only be approved to approvedMarketplaces", async () => {
+    await expect(nftContract.approve(someAddress.address, 0)).to.be.revertedWith("can only be approved to approved marketplaces");
+    await expect(nftContract.setApprovalForAll(someAddress.address, true)).to.be.revertedWith("can only be approved to approved marketplaces");
   })
 });
