@@ -26,7 +26,9 @@ const config: HardhatUserConfig = {
     enabled: true,
     currency: "USD",
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    gasPriceApi: "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+    // gasPriceApi: "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+    gasPriceApi: "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
+    token: "MATIC"
   },
   etherscan: {
     apiKey: {
