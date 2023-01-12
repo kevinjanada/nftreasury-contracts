@@ -95,7 +95,7 @@ contract NFTreasury is ERC721Drop {
         AllowlistProof calldata _allowlistProof,
         uint256 _listingPrice,
         bytes memory _data
-    ) external payable {
+    ) external onlyOwner payable {
         uint256 tokenId = ERC721Drop.nextTokenIdToClaim();
         uint256 _quantity = 1;
 

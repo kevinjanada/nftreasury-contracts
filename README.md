@@ -30,6 +30,9 @@ uint64: 1000
 
 
 ## claimAndList
+
+only Owner can do claimAndList
+
 ```javascript
 _receiver = "Receiving User's wallet address"
 _currency = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"

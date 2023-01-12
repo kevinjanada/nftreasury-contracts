@@ -130,6 +130,20 @@ describe("NFTreasury", async () => {
     )
     await tx.wait();
 
+    await expect(nftContract.connect(nftMinter).claimAndList(
+      nftMinter.address,
+      NATIVE_TOKEN,
+      0,
+      {
+        proof: [],
+        quantityLimitPerWallet: 0,
+        pricePerToken: 0,
+        currency: NATIVE_TOKEN
+      },
+      NFT_PRICE,
+      []
+    )).to.be.revertedWith("Not authorized");
+
     tx = await nftContract.claimAndList(
       nftMinter.address,
       NATIVE_TOKEN,
